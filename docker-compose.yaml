@@ -1,0 +1,82 @@
+version: '3'
+services:
+  gerrit1:
+    build: gerrit
+    environment:
+      - INSTANCE_ID=primary
+      - REPLICA=false
+      - REMOTE=replica-1
+      - REMOTE_URL=gerrit2
+      - DEBUG_PORT=5005
+      - REPLICATE_ON_STARTUP=false
+    volumes:
+      - "gerrit-1-logs-data:/var/gerrit/logs/"      
+    ports:
+      - "8080:8080"
+      - "29418:29418"
+      - "5005:5005"
+    networks:
+      - app
+
+  gerrit2:
+    build: gerrit
+    environment:
+      - INSTANCE_ID=replica-1
+      - REPLICA=true
+      - REMOTE=primary
+      - REMOTE_URL=gerrit1
+      - DEBUG_PORT=5006
+      - REPLICATE_ON_STARTUP=true
+    volumes:
+      - "gerrit-2-logs-data:/var/gerrit/logs/"
+    ports:
+      - "8081:8080"
+      - "29419:29418"
+      - "5006:5006"
+    depends_on:
+      - gerrit1
+    networks:
+      - app
+
+  grafana:
+    image: grafana/grafana:9.3.6
+    ports:
+      - 3000:3000
+    volumes:
+      - ./grafana/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yaml
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    networks:
+      - app
+
+  loki:
+    image: grafana/loki:2.7.4
+    ports:
+      - 3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - app
+
+  promtail:
+    image:  grafana/promtail:2.7.4
+    container_name: promtail
+    volumes:
+      - "./promtail/promtail.yaml:/etc/promtail/config.yml"
+      - "gerrit-1-logs-data:/var/gerrit-1/logs"
+      - "gerrit-2-logs-data:/var/gerrit-2/logs"
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - app
+
+
+networks:
+  app:
+    name: app
+
+volumes:
+  gerrit-1-logs-data:
+  gerrit-2-logs-data:

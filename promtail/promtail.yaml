@@ -1,0 +1,129 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: gerrit-primary-httpd
+    pipeline_stages:
+      - json:
+          expressions:
+            method: method
+            status: status
+
+      - labels:
+          method:          
+          status:
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          environment: test
+          instance: primary
+          type: httpd
+          __path__: /var/gerrit-1/logs/httpd_log.json
+  - job_name: gerrit-primary-error
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level            
+
+      - labels:
+          level:          
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          environment: test
+          instance: primary
+          type: error
+          __path__: /var/gerrit-1/logs/error_log.json
+  - job_name: gerrit-primary-sshd
+    pipeline_stages:
+      - json:
+          expressions:
+            user: user            
+
+      - labels:
+          user:          
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          environment: test
+          instance: primary
+          type: sshd
+          __path__: /var/gerrit-1/logs/sshd_log.json
+  - job_name: gerrit-primary-pull-replication
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          environment: test
+          instance: primary
+          type: pull-replication
+          __path__: /var/gerrit-1/logs/pull_replication_log          
+  - job_name: gerrit-replica-httpd
+    pipeline_stages:
+      - json:
+          expressions:
+            method: method            
+            status: status
+
+      - labels:
+          method:          
+          status:
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          environment: test
+          instance: replica
+          type: httpd
+          __path__: /var/gerrit-2/logs/httpd_log.json
+  - job_name: gerrit-replica-error
+    pipeline_stages:
+      - json:
+          expressions:
+            level: level            
+
+      - labels:
+          level:          
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          environment: test
+          instance: replica
+          type: error
+          __path__: /var/gerrit-2/logs/error_log.json
+  - job_name: gerrit-replica-sshd
+    pipeline_stages:
+      - json:
+          expressions:
+            user: user            
+
+      - labels:
+          user:          
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          environment: test
+          instance: replica
+          type: sshd
+          __path__: /var/gerrit-2/logs/sshd_log.json
+  - job_name: gerrit-replica-pull-replication
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          environment: test
+          instance: replica
+          type: pull-replication
+          __path__: /var/gerrit-2/logs/pull_replication_log          
